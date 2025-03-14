@@ -7,6 +7,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const swaggerDocs = require("./swagger");
+const e = require("express");
 
 const JWTSecret = "djkshahjksdajksdhasjkdhasjkdhasjkdhasjkd";
 
@@ -78,6 +79,22 @@ const UsersSchema = new mongoose.Schema({
 const Games = mongoose.model("Games", GamesSchema);
 const Users = mongoose.model("Users", UsersSchema);
 
+
+app.post("/auth", async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const user = await Users.findOne({ email, password });
+        if (!user) return res.status(404).json({ err: "Usuário e/ou senha inválidos!" });
+
+        res.status(200).json({
+            token: jwt.sign({ id: user.id, email: user.email }, JWTSecret, { expiresIn: "48h" })
+        });
+
+    } catch (err) {
+        res.status(500).json({ err: "Erro ao buscar usuário!" });
+    }
+});
+
 /**
  * @swagger
  * /games:
@@ -93,9 +110,27 @@ const Users = mongoose.model("Users", UsersSchema);
  *         description: Lista de jogos retornada com sucesso
  */
 app.get("/games", auth, async (req, res) => {
+    let HATEOAS = [
+        {
+            href: "http://localhost:3000/game/0",
+            method: "DELETE",
+            rel: "delete_game"
+        },
+        {
+            href: "http://localhost:3000/game/0",
+            method: "GET",
+            rel: "get_game"
+        },
+        {
+            href: "http://localhost:3000/game/0",
+            method: "PUT",
+            rel: "edit_game"
+        }
+    ]
     try {
         const games = await Games.find();
-        res.status(200).json({ empresa: req.empresa, user: req.loggedUser, games });
+        res.status(200).json({ empresa: req.empresa, user: req.loggedUser, games, _links: HATEOAS });
+
     } catch (err) {
         res.status(500).json({ err: "Erro ao buscar jogos!" });
     }
