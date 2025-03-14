@@ -9,6 +9,7 @@ yarn-error.log
 logs
 *.log
 
+.env
 # IDEs e editores
 .vscode/
 .idea/
